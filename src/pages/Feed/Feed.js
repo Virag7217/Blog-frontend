@@ -22,19 +22,31 @@ class Feed extends Component {
   };
 
   componentDidMount() {
-    fetch("http://localhost:3080/auth/status", {
+    const graphqlQuery = {
+      query: `
+        {
+          user {
+            status
+          }
+        }
+      `,
+    };
+    fetch("http://localhost:3080/graphql", {
+      method: "POST",
       headers: {
         Authorization: "Bearer " + this.props.token,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(graphqlQuery),
     })
       .then((res) => {
-        if (res.status !== 200) {
-          throw new Error("Failed to fetch user status.");
-        }
         return res.json();
       })
       .then((resData) => {
-        this.setState({ status: resData.status });
+        if (resData.errors) {
+          throw new Error("Fetching status failed!");
+        }
+        this.setState({ status: resData.data.user.status });
       })
       .catch(this.catchError);
 
@@ -102,25 +114,35 @@ class Feed extends Component {
       .catch(this.catchError);
   };
 
-  statusUpdateHandler = (event) => {
+  statusUpdateHandler = event => {
     event.preventDefault();
-    fetch("http://localhost:3080/auth/status", {
-      method: "PATCH",
-      headers: {
-        Authorization: "Bearer " + this.props.token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        status: this.state.status,
-      }),
-    })
-      .then((res) => {
-        if (res.status !== 200 && res.status !== 201) {
-          throw new Error("Can't update status!");
+    const graphqlQuery = {
+      query: `
+        mutation UpdateUserStatus($userStatus: String!) {
+          updateStatus(status: $userStatus) {
+            status
+          }
         }
+      `,
+      variables: {
+        userStatus: this.state.status
+      }
+    };
+    fetch('http://localhost:3080/graphql', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + this.props.token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(graphqlQuery)
+    })
+      .then(res => {
         return res.json();
       })
-      .then((resData) => {
+      .then(resData => {
+        if (resData.errors) {
+          throw new Error('Fetching posts failed!');
+        }
         console.log(resData);
       })
       .catch(this.catchError);
