@@ -144,6 +144,7 @@ class Feed extends Component {
     this.setState({ isEditing: false, editPost: null });
   };
 
+  // backend issue
   finishEditHandler = postData => {
     this.setState({
       editLoading: true
